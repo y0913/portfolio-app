@@ -8,3 +8,4 @@
 .env.*
 !.env.example
 !**/.env.example
+dev_note.md

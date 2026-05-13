@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: portfolio_development
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
