@@ -115,20 +115,21 @@ export default async function Home() {
       </section>
 
       <section className="mt-24 rounded-xl border bg-muted/30 p-6 sm:p-8">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          About this demo
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          合同会社Build による技術検証プロジェクトです。ソースコードは{" "}
+          <a
+            href="https://github.com/y0913/portfolio-app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            GitHub
+          </a>
+          で公開しています。
         </p>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          AI 連携アプリ開発の、技術検証として制作
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          合同会社Build が、業務委託でのAI連携アプリ開発案件を想定して制作したリファレンス実装です。
-          認証、ファイル取り込み、非同期処理、AI連携、引用付き応答までを実装し、
-          実プロダクトと同じレベルの設計を意識しています。同様の社内ツールを構築したいご相談を承っています。
-        </p>
-        <details className="mt-5 group">
-          <summary className="cursor-pointer text-sm font-medium text-foreground/80 hover:text-foreground select-none">
-            技術スタックを見る
+        <details className="mt-4 group">
+          <summary className="cursor-pointer text-sm font-medium text-foreground/70 hover:text-foreground select-none">
+            技術スタック
           </summary>
           <ul className="mt-3 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
             <li>• Next.js 16 / React 19 / TypeScript</li>
