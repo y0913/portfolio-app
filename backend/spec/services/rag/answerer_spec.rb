@@ -1,12 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Rag::Answerer do
-  let(:user) { create(:user) }
+  let(:admin) { create(:user, :admin) }
   let(:embedder) { Embedding::StubAdapter.new }
   let(:llm) { Llm::StubAdapter.new }
 
   before do
-    doc = create(:document, :ready, user: user, title: "返金ポリシー")
+    doc = create(:document, :ready, user: admin, title: "返金ポリシー")
     create(:document_chunk, document: doc, position: 0,
            content: "商品到着から30日以内であれば、未開封・未使用に限り返品を承ります。",
            embedding_model: embedder.model_name,
@@ -14,8 +14,8 @@ RSpec.describe Rag::Answerer do
   end
 
   describe "#answer" do
-    let(:retriever) { Rag::Retriever.new(user: user, embedder: embedder) }
-    subject(:answerer) { described_class.new(user: user, retriever: retriever, llm: llm) }
+    let(:retriever) { Rag::Retriever.new(embedder: embedder) }
+    subject(:answerer) { described_class.new(retriever: retriever, llm: llm) }
 
     it "returns a result with content and citations" do
       result = answerer.answer("返金期間は？")
@@ -33,8 +33,8 @@ RSpec.describe Rag::Answerer do
   end
 
   describe "#stream_answer" do
-    let(:retriever) { Rag::Retriever.new(user: user, embedder: embedder) }
-    subject(:answerer) { described_class.new(user: user, retriever: retriever, llm: llm) }
+    let(:retriever) { Rag::Retriever.new(embedder: embedder) }
+    subject(:answerer) { described_class.new(retriever: retriever, llm: llm) }
 
     it "yields citations first, then deltas, then done" do
       events = []

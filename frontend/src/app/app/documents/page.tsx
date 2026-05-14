@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Loader2, Trash2, Upload } from "lucide-react";
+import { FileText, Loader2, Lock, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ApiError, documentsApi, type DocumentSummary } from "@/lib/api";
+import { ApiError, authApi, documentsApi, type CurrentUser, type DocumentSummary } from "@/lib/api";
 
 function formatBytes(n: number | null): string {
   if (n == null) return "—";
@@ -37,9 +37,16 @@ const statusColor: Record<DocumentSummary["status"], string> = {
 
 export default function DocumentsPage() {
   const [docs, setDocs] = useState<DocumentSummary[] | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const isAdmin = user?.admin === true;
+
+  useEffect(() => {
+    authApi.me().then(setUser).catch(() => setUser(null));
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -100,34 +107,45 @@ export default function DocumentsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">資料</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            テキスト形式 (.txt / .md) の資料を取り込みます。最大 2 MB。
+            {isAdmin
+              ? "テキスト形式 (.txt / .md) の資料を取り込みます。最大 2 MB。"
+              : "管理者が登録した資料の一覧です。チャットの回答はこの資料に基づいて生成されます。"}
           </p>
         </div>
-        <div>
-          <Input
-            ref={fileInputRef}
-            type="file"
-            accept=".txt,.md,.markdown,text/plain,text/markdown"
-            onChange={onUpload}
-            disabled={uploading}
-            className="hidden"
-            id="file-upload"
-          />
-          <Button disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-            {uploading ? (
-              <>
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                送信中
-              </>
-            ) : (
-              <>
-                <Upload className="mr-1.5 h-4 w-4" />
-                追加
-              </>
-            )}
-          </Button>
-        </div>
+        {isAdmin && (
+          <div>
+            <Input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.markdown,text/plain,text/markdown"
+              onChange={onUpload}
+              disabled={uploading}
+              className="hidden"
+              id="file-upload"
+            />
+            <Button disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  送信中
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-1.5 h-4 w-4" />
+                  追加
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
+
+      {!isAdmin && user && (
+        <div className="mb-4 flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>資料の追加・削除は管理者のみが行えます。</span>
+        </div>
+      )}
 
       {error && (
         <p className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -142,7 +160,9 @@ export default function DocumentsPage() {
           <CardHeader>
             <CardTitle className="text-base">まだ資料がありません</CardTitle>
             <CardDescription>
-              右上の「追加」から .txt / .md ファイルをアップロードしてください。
+              {isAdmin
+                ? "右上の「追加」から .txt / .md ファイルをアップロードしてください。"
+                : "管理者が資料を登録するまでお待ちください。"}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -164,14 +184,16 @@ export default function DocumentsPage() {
                   <span className={`text-xs font-medium ${statusColor[d.status]}`}>
                     {statusLabel[d.status]}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(d.id)}
-                    className="text-muted-foreground transition-colors hover:text-destructive"
-                    aria-label="削除"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => onDelete(d.id)}
+                      className="text-muted-foreground transition-colors hover:text-destructive"
+                      aria-label="削除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </CardContent>
             </Card>

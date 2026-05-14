@@ -1,18 +1,22 @@
 module Api
   class DocumentsController < ApplicationController
+    require_admin only: %i[create destroy]
+
     MAX_FILE_SIZE = 2.megabytes
     ALLOWED_EXTENSIONS = %w[.txt .md .markdown].freeze
 
+    # All authenticated users can list/view the shared knowledge base.
     def index
-      documents = Current.user.documents.order(created_at: :desc).map { serialize(_1) }
+      documents = Document.order(created_at: :desc).map { serialize(_1) }
       render json: { documents: documents }
     end
 
     def show
-      document = Current.user.documents.find(params[:id])
+      document = Document.find(params[:id])
       render json: serialize(document, include_chunks: true)
     end
 
+    # Admin-only. Uploaded documents are shared across all users.
     def create
       file = params[:file]
       unless file.respond_to?(:original_filename)
@@ -42,7 +46,7 @@ module Api
     end
 
     def destroy
-      document = Current.user.documents.find(params[:id])
+      document = Document.find(params[:id])
       document.destroy!
       head :no_content
     end

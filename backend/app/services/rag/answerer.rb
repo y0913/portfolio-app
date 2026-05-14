@@ -14,8 +14,7 @@ module Rag
       - 回答は日本語で、簡潔に書いてください。
     SYS
 
-    def initialize(user:, retriever: Retriever.new(user: user), llm: Llm::Client.default)
-      @user = user
+    def initialize(retriever: Retriever.new, llm: Llm::Client.default)
       @retriever = retriever
       @llm = llm
     end

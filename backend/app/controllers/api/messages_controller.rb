@@ -13,7 +13,7 @@ module Api
       user_message = session.messages.create!(role: "user", content: content)
       history = history_excluding(session, user_message)
 
-      result = Rag::Answerer.new(user: Current.user).answer(content, history: history)
+      result = Rag::Answerer.new.answer(content, history: history)
 
       assistant_message = session.messages.create!(
         role: "assistant",
@@ -54,7 +54,7 @@ module Api
       sse.write(serialize(user_message), event: "user_message")
 
       history = history_excluding(session, user_message)
-      answerer = Rag::Answerer.new(user: Current.user)
+      answerer = Rag::Answerer.new
       citations_payload = nil
 
       result = answerer.stream_answer(content, history: history) do |event_type, payload|

@@ -6,7 +6,7 @@ module Api
       user = User.new(user_params)
       if user.save
         start_new_session_for(user)
-        render json: { id: user.id, email_address: user.email_address }, status: :created
+        render json: { id: user.id, email_address: user.email_address, admin: user.admin? }, status: :created
       else
         render json: { errors: user.errors.as_json(full_messages: true) }, status: :unprocessable_entity
       end

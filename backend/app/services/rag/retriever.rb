@@ -1,11 +1,12 @@
 module Rag
-  # Finds the most relevant DocumentChunks for a query among a user's ready
-  # documents. Pure retrieval — no LLM call.
+  # Finds the most relevant DocumentChunks for a query against the shared
+  # knowledge base (all ready documents in the instance). Documents are uploaded
+  # by admins and visible to every authenticated user, so retrieval is not
+  # scoped by user.
   class Retriever
     DEFAULT_K = 5
 
-    def initialize(user:, embedder: Embedding::Client.default)
-      @user = user
+    def initialize(embedder: Embedding::Client.default)
       @embedder = embedder
     end
 
@@ -17,7 +18,7 @@ module Rag
 
       DocumentChunk
         .joins(:document)
-        .where(documents: { user_id: @user.id, status: "ready" })
+        .where(documents: { status: "ready" })
         .where(embedding_model: @embedder.model_name)
         .nearest_neighbors(:embedding, vector, distance: "cosine")
         .limit(k)

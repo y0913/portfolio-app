@@ -25,7 +25,7 @@ module Api
 
     private
       def user_payload(user)
-        { id: user.id, email_address: user.email_address }
+        { id: user.id, email_address: user.email_address, admin: user.admin? }
       end
   end
 end

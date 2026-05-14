@@ -9,6 +9,10 @@ module Authentication
     def allow_unauthenticated_access(**options)
       skip_before_action :require_authentication, **options
     end
+
+    def require_admin(**options)
+      before_action :require_admin!, **options
+    end
   end
 
   private
@@ -18,6 +22,11 @@ module Authentication
 
     def require_authentication
       resume_session || request_authentication
+    end
+
+    def require_admin!
+      return if Current.user&.admin?
+      render json: { error: "forbidden" }, status: :forbidden
     end
 
     def resume_session

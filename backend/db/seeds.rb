@@ -15,10 +15,12 @@ demo_user = User.find_or_initialize_by(email_address: DEMO_EMAIL)
 if demo_user.new_record?
   demo_user.password = DEMO_PASSWORD
   demo_user.password_confirmation = DEMO_PASSWORD
+  demo_user.admin = true
   demo_user.save!
-  puts "Created demo user #{DEMO_EMAIL}"
+  puts "Created demo admin user #{DEMO_EMAIL}"
 else
-  puts "Demo user #{DEMO_EMAIL} already exists (id=#{demo_user.id})"
+  demo_user.update!(admin: true) unless demo_user.admin?
+  puts "Demo user #{DEMO_EMAIL} already exists (id=#{demo_user.id}, admin=#{demo_user.admin?})"
 end
 
 SAMPLE_DOCS = [

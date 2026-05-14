@@ -4,6 +4,7 @@ export const API_BASE_URL =
 export type CurrentUser = {
   id: number;
   email_address: string;
+  admin: boolean;
 };
 
 export class ApiError extends Error {
