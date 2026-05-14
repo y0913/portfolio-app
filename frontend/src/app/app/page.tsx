@@ -38,11 +38,10 @@ export default function AppHome() {
           </CardHeader>
           <CardContent>
             <Link
-              href="#"
-              aria-disabled
+              href="/app/chat"
               className={buttonVariants({ variant: "outline" })}
             >
-              準備中
+              チャットを開く
             </Link>
           </CardContent>
         </Card>

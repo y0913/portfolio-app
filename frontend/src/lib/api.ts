@@ -108,3 +108,65 @@ export const documentsApi = {
     }
   },
 };
+
+export type Citation = {
+  number: number;
+  document_id: number;
+  document_title: string;
+  chunk_id: number;
+  position: number;
+  excerpt: string;
+};
+
+export type ChatMessage = {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  citations: Citation[];
+  created_at: string;
+};
+
+export type ChatSessionSummary = {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages_count: number;
+};
+
+export type ChatSessionDetail = ChatSessionSummary & {
+  messages: ChatMessage[];
+};
+
+export const chatApi = {
+  listSessions: () =>
+    request<{ chat_sessions: ChatSessionSummary[] }>("/api/chat_sessions", { method: "GET" }),
+
+  getSession: (id: number) =>
+    request<ChatSessionDetail>(`/api/chat_sessions/${id}`, { method: "GET" }),
+
+  createSession: (title?: string) =>
+    request<ChatSessionDetail>("/api/chat_sessions", {
+      method: "POST",
+      body: JSON.stringify(title ? { title } : {}),
+    }),
+
+  destroySession: async (id: number): Promise<void> => {
+    const res = await fetch(`${API_BASE_URL}/api/chat_sessions/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      throw new ApiError(res.status, null);
+    }
+  },
+
+  sendMessage: (sessionId: number, content: string) =>
+    request<{ user_message: ChatMessage; assistant_message: ChatMessage }>(
+      `/api/chat_sessions/${sessionId}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }
+    ),
+};

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -14,8 +14,11 @@ type State =
 
 export function AuthNav() {
   const router = useRouter();
+  const pathname = usePathname();
   const [state, setState] = useState<State>({ status: "loading" });
 
+  // Re-probe the session on every route change so that login/logout in another
+  // component (e.g. /login form) is reflected in the header without a full reload.
   useEffect(() => {
     let active = true;
     authApi
@@ -34,7 +37,7 @@ export function AuthNav() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [pathname]);
 
   async function onLogout() {
     await authApi.logout();

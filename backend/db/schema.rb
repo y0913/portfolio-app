@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_114157) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_115911) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -43,9 +43,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_114157) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-# Could not dump table "document_chunks" because of following StandardError
-#   Unknown type 'vector(1024)' for column 'embedding'
+  create_table "chat_sessions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_chat_sessions_on_user_id"
+  end
 
+  create_table "document_chunks", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.bigint "document_id", null: false
+    t.vector "embedding", limit: 1024
+    t.string "embedding_model", null: false
+    t.integer "position", null: false
+    t.datetime "updated_at", null: false
+    t.index ["document_id", "position"], name: "index_document_chunks_on_document_id_and_position", unique: true
+    t.index ["document_id"], name: "index_document_chunks_on_document_id"
+    t.index ["embedding"], name: "document_chunks_embedding_hnsw_idx", opclass: :vector_cosine_ops, using: :hnsw
+  end
 
   create_table "documents", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -54,6 +71,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_114157) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_documents_on_user_id"
+  end
+
+  create_table "messages", force: :cascade do |t|
+    t.bigint "chat_session_id", null: false
+    t.jsonb "citations", default: [], null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.string "role", null: false
+    t.datetime "updated_at", null: false
+    t.index ["chat_session_id", "created_at"], name: "index_messages_on_chat_session_id_and_created_at"
+    t.index ["chat_session_id"], name: "index_messages_on_chat_session_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -75,7 +103,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_114157) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "chat_sessions", "users"
   add_foreign_key "document_chunks", "documents"
   add_foreign_key "documents", "users"
+  add_foreign_key "messages", "chat_sessions"
   add_foreign_key "sessions", "users"
 end
