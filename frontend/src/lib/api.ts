@@ -169,4 +169,82 @@ export const chatApi = {
         body: JSON.stringify({ content }),
       }
     ),
+
+  streamMessage: async (
+    sessionId: number,
+    content: string,
+    handlers: {
+      onUserMessage?: (m: ChatMessage) => void;
+      onCitations?: (c: Citation[]) => void;
+      onDelta?: (text: string) => void;
+      onDone?: (m: ChatMessage) => void;
+      onError?: (message: string) => void;
+      signal?: AbortSignal;
+    } = {}
+  ): Promise<void> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/chat_sessions/${sessionId}/messages/stream`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+        body: JSON.stringify({ content }),
+        signal: handlers.signal,
+      }
+    );
+
+    if (!res.ok || !res.body) {
+      throw new ApiError(res.status, null);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let sepIndex;
+      while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
+        const raw = buffer.slice(0, sepIndex);
+        buffer = buffer.slice(sepIndex + 2);
+
+        let event = "message";
+        let data = "";
+        for (const line of raw.split("\n")) {
+          if (line.startsWith("event:")) event = line.slice(6).trim();
+          else if (line.startsWith("data:")) data += line.slice(5).trimStart();
+        }
+        if (!data) continue;
+
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(data);
+        } catch {
+          continue;
+        }
+
+        switch (event) {
+          case "user_message":
+            handlers.onUserMessage?.(parsed as ChatMessage);
+            break;
+          case "citations":
+            handlers.onCitations?.(parsed as Citation[]);
+            break;
+          case "delta":
+            handlers.onDelta?.((parsed as { text: string }).text);
+            break;
+          case "done":
+            handlers.onDone?.(parsed as ChatMessage);
+            break;
+          case "error":
+            handlers.onError?.((parsed as { message: string }).message);
+            break;
+        }
+      }
+    }
+  },
 };

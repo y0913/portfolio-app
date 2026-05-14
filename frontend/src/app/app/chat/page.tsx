@@ -152,13 +152,53 @@ export default function ChatPage() {
 
     setInput("");
     setSending(true);
+
+    // Placeholder assistant message that we will fill in as deltas arrive.
+    const placeholderId = -Date.now();
+    const placeholder: ChatMessage = {
+      id: placeholderId,
+      role: "assistant",
+      content: "",
+      citations: [],
+      created_at: new Date().toISOString(),
+    };
+
     try {
-      const { user_message, assistant_message } = await chatApi.sendMessage(sessionId, content);
-      setActive((s) =>
-        s
-          ? { ...s, messages: [...s.messages, user_message, assistant_message] }
-          : s
-      );
+      await chatApi.streamMessage(sessionId, content, {
+        onUserMessage: (m) => {
+          setActive((s) => (s ? { ...s, messages: [...s.messages, m, placeholder] } : s));
+        },
+        onCitations: (citations) => {
+          setActive((s) => {
+            if (!s) return s;
+            const messages = s.messages.map((m) =>
+              m.id === placeholderId ? { ...m, citations } : m
+            );
+            return { ...s, messages };
+          });
+        },
+        onDelta: (text) => {
+          setActive((s) => {
+            if (!s) return s;
+            const messages = s.messages.map((m) =>
+              m.id === placeholderId ? { ...m, content: m.content + text } : m
+            );
+            return { ...s, messages };
+          });
+        },
+        onDone: (final) => {
+          setActive((s) => {
+            if (!s) return s;
+            const messages = s.messages.map((m) =>
+              m.id === placeholderId ? final : m
+            );
+            return { ...s, messages };
+          });
+        },
+        onError: (msg) => {
+          setError(msg);
+        },
+      });
       await refreshSessions();
     } catch (err) {
       if (err instanceof ApiError) {
@@ -167,6 +207,11 @@ export default function ChatPage() {
       } else {
         setError("送信に失敗しました。");
       }
+      // Roll back the placeholder if the stream never finished.
+      setActive((s) => {
+        if (!s) return s;
+        return { ...s, messages: s.messages.filter((m) => m.id !== placeholderId) };
+      });
     } finally {
       setSending(false);
     }

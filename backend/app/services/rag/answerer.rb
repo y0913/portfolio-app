@@ -21,28 +21,50 @@ module Rag
     end
 
     def answer(question, history: [])
-      chunks = @retriever.search(question)
-      citations = chunks.each_with_index.map { |c, i| build_citation(c, i + 1) }
-      context = build_context(chunks)
-
-      messages = history.map { |m| { role: m.fetch(:role), content: m.fetch(:content) } }
-      messages << {
-        role: "user",
-        content: <<~MSG.strip
-          # 資料
-          #{context.presence || "(該当する資料は見つかりませんでした)"}
-
-          # 質問
-          #{question}
-        MSG
-      }
-
+      chunks, citations, messages = prepare(question, history)
       content = @llm.generate(messages, system: SYSTEM_PROMPT, max_tokens: 1024, temperature: 0.2)
 
       Result.new(content: content, citations: citations, chunks: chunks)
     end
 
+    # Streaming variant. Yields (event_type, payload) tuples:
+    #   [:citations, Array<Hash>] — fired once before the first token
+    #   [:delta, String]          — text fragments as they arrive
+    #   [:done, String]           — final concatenated answer (also returned)
+    def stream_answer(question, history: [])
+      chunks, citations, messages = prepare(question, history)
+      yield :citations, citations
+
+      buffer = +""
+      @llm.generate_stream(messages, system: SYSTEM_PROMPT, max_tokens: 1024, temperature: 0.2) do |delta|
+        buffer << delta
+        yield :delta, delta
+      end
+
+      yield :done, buffer
+      Result.new(content: buffer, citations: citations, chunks: chunks)
+    end
+
     private
+      def prepare(question, history)
+        chunks = @retriever.search(question)
+        citations = chunks.each_with_index.map { |c, i| build_citation(c, i + 1) }
+        context = build_context(chunks)
+
+        messages = history.map { |m| { role: m.fetch(:role), content: m.fetch(:content) } }
+        messages << {
+          role: "user",
+          content: <<~MSG.strip
+            # 資料
+            #{context.presence || "(該当する資料は見つかりませんでした)"}
+
+            # 質問
+            #{question}
+          MSG
+        }
+        [chunks, citations, messages]
+      end
+
       def build_context(chunks)
         chunks.each_with_index.map do |c, i|
           "[#{i + 1}] (#{c.document.title}, 第#{c.position + 1}節)\n#{c.content}"
