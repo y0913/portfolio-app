@@ -53,6 +53,10 @@ Rails.application.configure do
   # Highlight code that enqueued background job in logs.
   config.active_job.verbose_enqueue_logs = true
 
+  # Run jobs in-process so no separate worker is needed locally.
+  # Production uses solid_queue + `bin/jobs`.
+  config.active_job.queue_adapter = :async
+
   # Highlight code that triggered redirect in logs.
   config.action_dispatch.verbose_redirect_logs = true
 

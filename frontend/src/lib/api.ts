@@ -62,3 +62,49 @@ export const authApi = {
 
   me: () => request<CurrentUser>("/api/session", { method: "GET" }),
 };
+
+export type DocumentStatus = "pending" | "processing" | "ready" | "failed";
+
+export type DocumentSummary = {
+  id: number;
+  title: string;
+  status: DocumentStatus;
+  chunks_count: number;
+  filename: string | null;
+  byte_size: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export const documentsApi = {
+  list: () =>
+    request<{ documents: DocumentSummary[] }>("/api/documents", { method: "GET" }),
+
+  upload: async (file: File, title?: string): Promise<DocumentSummary> => {
+    const form = new FormData();
+    form.append("file", file);
+    if (title) form.append("title", title);
+
+    const res = await fetch(`${API_BASE_URL}/api/documents`, {
+      method: "POST",
+      credentials: "include",
+      body: form,
+    });
+
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(res.status, body);
+    }
+    return body as DocumentSummary;
+  },
+
+  destroy: async (id: number): Promise<void> => {
+    const res = await fetch(`${API_BASE_URL}/api/documents/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      throw new ApiError(res.status, null);
+    }
+  },
+};

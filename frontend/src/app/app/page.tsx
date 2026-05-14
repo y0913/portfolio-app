@@ -17,16 +17,15 @@ export default function AppHome() {
           <CardHeader>
             <CardTitle className="text-base">資料を追加する</CardTitle>
             <CardDescription>
-              PDF・テキストをアップロードして、AIに読み込ませます。
+              .txt / .md をアップロードして、AIに読み込ませます。
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link
-              href="#"
-              aria-disabled
+              href="/app/documents"
               className={buttonVariants({ variant: "outline" })}
             >
-              準備中
+              資料を管理
             </Link>
           </CardContent>
         </Card>
