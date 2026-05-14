@@ -17,7 +17,25 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+type RequestOptions = {
+  // When the server returns 401 for an authenticated endpoint, force a hard
+  // navigation to /login so AuthNav and any in-flight state get reset.
+  // Endpoints used by the login flow itself (authApi.me / login) should pass
+  // skipAuthRedirect: true so they can surface the 401 to their caller.
+  skipAuthRedirect?: boolean;
+};
+
+function handleUnauthorized() {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname === "/login") return;
+  window.location.assign("/login");
+}
+
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  opts: RequestOptions = {}
+): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
@@ -32,6 +50,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const body = isJson ? await res.json().catch(() => null) : null;
 
   if (!res.ok) {
+    if (res.status === 401 && !opts.skipAuthRedirect) {
+      handleUnauthorized();
+    }
     throw new ApiError(res.status, body);
   }
   return body as T;
@@ -49,10 +70,14 @@ export const authApi = {
     }),
 
   login: (email_address: string, password: string) =>
-    request<CurrentUser>("/api/session", {
-      method: "POST",
-      body: JSON.stringify({ email_address, password }),
-    }),
+    request<CurrentUser>(
+      "/api/session",
+      {
+        method: "POST",
+        body: JSON.stringify({ email_address, password }),
+      },
+      { skipAuthRedirect: true }
+    ),
 
   logout: () =>
     fetch(`${API_BASE_URL}/api/session`, {
@@ -60,7 +85,8 @@ export const authApi = {
       credentials: "include",
     }),
 
-  me: () => request<CurrentUser>("/api/session", { method: "GET" }),
+  me: () =>
+    request<CurrentUser>("/api/session", { method: "GET" }, { skipAuthRedirect: true }),
 };
 
 export type DocumentStatus = "pending" | "processing" | "ready" | "failed";
@@ -93,6 +119,7 @@ export const documentsApi = {
 
     const body = await res.json().catch(() => null);
     if (!res.ok) {
+      if (res.status === 401) handleUnauthorized();
       throw new ApiError(res.status, body);
     }
     return body as DocumentSummary;
@@ -104,6 +131,7 @@ export const documentsApi = {
       credentials: "include",
     });
     if (!res.ok) {
+      if (res.status === 401) handleUnauthorized();
       throw new ApiError(res.status, null);
     }
   },
@@ -116,6 +144,7 @@ export type Citation = {
   chunk_id: number;
   position: number;
   excerpt: string;
+  content: string;
 };
 
 export type ChatMessage = {
@@ -157,6 +186,7 @@ export const chatApi = {
       credentials: "include",
     });
     if (!res.ok) {
+      if (res.status === 401) handleUnauthorized();
       throw new ApiError(res.status, null);
     }
   },
@@ -194,6 +224,7 @@ export const chatApi = {
     );
 
     if (!res.ok || !res.body) {
+      if (res.status === 401) handleUnauthorized();
       throw new ApiError(res.status, null);
     }
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertCircle,
   Loader2,
   MessageSquarePlus,
   SendHorizontal,
@@ -9,6 +10,13 @@ import {
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ApiError,
@@ -20,38 +28,66 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-function CitationBadges({ citations }: { citations: Citation[] }) {
+function CitationBadges({
+  citations,
+  onOpen,
+}: {
+  citations: Citation[];
+  onOpen: (c: Citation) => void;
+}) {
   if (!citations.length) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">
       {citations.map((c) => (
-        <span
+        <button
           key={c.chunk_id}
+          type="button"
+          onClick={() => onOpen(c)}
           title={c.excerpt}
-          className="inline-flex items-center gap-1 rounded-md border bg-background/60 px-1.5 py-0.5 text-[11px] text-muted-foreground"
+          className="inline-flex items-center gap-1 rounded-md border bg-background/60 px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
         >
           <span className="font-mono">[{c.number}]</span>
           <span className="max-w-[14rem] truncate">{c.document_title}</span>
-        </span>
+        </button>
       ))}
     </div>
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({
+  message,
+  onOpenCitation,
+}: {
+  message: ChatMessage;
+  onOpenCitation: (c: Citation) => void;
+}) {
   const isUser = message.role === "user";
+  const isAssistant = !isUser;
+  const hasNoCitations =
+    isAssistant && message.content.trim().length > 0 && message.citations.length === 0;
+
   return (
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "border bg-muted/30 text-foreground"
+      <div className={cn("max-w-[85%]", isUser ? "" : "w-full sm:w-[85%]")}>
+        {hasNoCitations && (
+          <div className="mb-1.5 flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-700 dark:text-amber-300">
+            <AlertCircle className="h-3 w-3" />
+            この回答には対応する資料が見つかりませんでした。
+          </div>
         )}
-      >
-        {message.content}
-        {!isUser && <CitationBadges citations={message.citations} />}
+        <div
+          className={cn(
+            "whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+            isUser
+              ? "bg-primary text-primary-foreground"
+              : "border bg-muted/30 text-foreground"
+          )}
+        >
+          {message.content}
+          {isAssistant && (
+            <CitationBadges citations={message.citations} onOpen={onOpenCitation} />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -64,6 +100,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [citationDialog, setCitationDialog] = useState<Citation | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const refreshSessions = useCallback(async () => {
@@ -297,7 +334,7 @@ export default function ChatPage() {
           ) : (
             <div className="space-y-3">
               {active!.messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
+                <MessageBubble key={m.id} message={m} onOpenCitation={setCitationDialog} />
               ))}
               {sending && (
                 <div className="flex justify-start">
@@ -333,6 +370,34 @@ export default function ChatPage() {
           </Button>
         </div>
       </section>
+
+      <Dialog
+        open={citationDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setCitationDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          {citationDialog && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  <span className="mr-2 font-mono text-xs text-muted-foreground">
+                    [{citationDialog.number}]
+                  </span>
+                  {citationDialog.document_title}
+                </DialogTitle>
+                <DialogDescription>
+                  第 {citationDialog.position + 1} 節 — この箇所が回答の根拠です。
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm leading-relaxed">
+                {citationDialog.content || citationDialog.excerpt}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

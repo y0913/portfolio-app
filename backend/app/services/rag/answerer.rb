@@ -78,7 +78,8 @@ module Rag
           document_title: chunk.document.title,
           chunk_id: chunk.id,
           position: chunk.position,
-          excerpt: chunk.content.to_s[0, 160]
+          excerpt: chunk.content.to_s[0, 160],
+          content: chunk.content.to_s
         }
       end
   end
