@@ -3,5 +3,8 @@ Rails.application.routes.draw do
 
   namespace :api do
     get "hello", to: "hello#index"
+
+    resource :session, only: [:show, :create, :destroy]
+    resources :users, only: [:create]
   end
 end

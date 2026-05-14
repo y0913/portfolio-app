@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthNav } from "@/components/auth-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SiteHeader() {
@@ -11,7 +12,8 @@ export function SiteHeader() {
           </span>
           <span>Doc Q&amp;A</span>
         </Link>
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-2">
+          <AuthNav />
           <ThemeToggle />
         </nav>
       </div>
