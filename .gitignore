@@ -9,3 +9,5 @@
 !.env.example
 !**/.env.example
 dev_note.md
+backend/.env.example
+backend/.env.example

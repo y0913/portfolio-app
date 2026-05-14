@@ -35,7 +35,18 @@ module Authentication
     def start_new_session_for(user)
       user.sessions.create!(user_agent: request.user_agent, ip_address: request.remote_ip).tap do |session|
         Current.session = session
-        cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }
+        cookies.signed.permanent[:session_id] = session_cookie_options(session.id)
+      end
+    end
+
+    def session_cookie_options(value)
+      base = { value: value, httponly: true }
+      if Rails.env.production?
+        # Frontend (Vercel) and backend (Fly.io) are on different sites in prod,
+        # so the browser only sends credentials when SameSite=None + Secure.
+        base.merge(same_site: :none, secure: true)
+      else
+        base.merge(same_site: :lax)
       end
     end
 

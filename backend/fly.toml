@@ -1,0 +1,53 @@
+# Fly.io configuration for the Rails backend.
+# Replace `app = "portfolio-app-api"` with the name Fly assigns / you pick at
+# `fly launch`.
+app = "portfolio-app-api"
+primary_region = "nrt"  # Tokyo. Change to a region close to your DB if you move regions.
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Production defaults baked into the image. Secrets (API keys, DATABASE_URL,
+  # RAILS_MASTER_KEY) are set via `fly secrets set` — see dev_note Phase 7.
+  PORT = "8080"
+  RAILS_ENV = "production"
+  RAILS_SERVE_STATIC_FILES = "1"
+  RAILS_LOG_TO_STDOUT = "1"
+  # Run Solid Queue inside Puma so we don't need a second VM for the worker.
+  # config/puma.rb picks this up via `plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]`.
+  SOLID_QUEUE_IN_PUMA = "1"
+  # Default to the stub providers so a brand-new deploy without real keys still
+  # boots; flip to "voyage" / "anthropic" via `fly secrets set` once keys are in.
+  EMBEDDING_PROVIDER = "stub"
+  LLM_PROVIDER = "stub"
+
+[deploy]
+  # Run pending DB migrations before each release.
+  release_command = "bin/rails db:prepare"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/up"
+
+# Single VM is enough for the demo. Bump memory if Solid Queue runs in-process.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[processes]
+  # Web (Puma via Thruster). Solid Queue runs in-process via SOLID_QUEUE_IN_PUMA.
+  # For higher load, add `worker = "bundle exec rake solid_queue:start"` here
+  # and a second [[vm]] block.
+  app = "./bin/thrust ./bin/rails server"

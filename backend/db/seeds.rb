@@ -1,8 +1,15 @@
-# Idempotent seed: demo user + sample documents.
-# Safe to re-run.
+# Idempotent demo seed. Skipped in production so we never accidentally create
+# a known-password account on a public deployment.
+# Safe to re-run in development / test.
+#
+# Override the demo password locally with: DEMO_USER_PASSWORD=... bin/rails db:seed
+if Rails.env.production?
+  puts "Skipping demo seed in production. Set RAILS_ENV=development to seed locally."
+  return
+end
 
-DEMO_EMAIL = "demo@example.com".freeze
-DEMO_PASSWORD = "password123".freeze
+DEMO_EMAIL = ENV.fetch("DEMO_USER_EMAIL", "demo@example.com").freeze
+DEMO_PASSWORD = ENV.fetch("DEMO_USER_PASSWORD", "password123").freeze
 
 demo_user = User.find_or_initialize_by(email_address: DEMO_EMAIL)
 if demo_user.new_record?
