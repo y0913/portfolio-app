@@ -14,5 +14,11 @@ Rails.application.routes.draw do
         end
       end
     end
+
+    # Inbound webhooks from external messaging platforms.
+    # Authenticated per-platform via signature header, not user session.
+    namespace :webhooks do
+      post :chatwork, to: "chatwork#create"
+    end
   end
 end
