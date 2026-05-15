@@ -33,6 +33,10 @@ services:
       DATABASE_USER: postgres
       DATABASE_PASSWORD: password
       RAILS_ENV: development
+    env_file:
+      # Optional; ignored if the file does not exist (Phase 8: CHATWORK_*, LLM keys, etc.)
+      - path: .env
+        required: false
     tty: true
     stdin_open: true
 
