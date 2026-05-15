@@ -61,12 +61,13 @@ module Messaging
 
       private
         # Remove ChatWork-specific reply/mention tags so the LLM gets clean text.
-        #   [To:222]      -> ""
-        #   [rp aid=222 to=33-44] -> ""
-        #   [qt][qtmeta ...][/qt] -> ""
+        #   [To:222]              -> ""   (mention)
+        #   [rp aid=222 to=33-44] -> ""   (reply marker)
+        #   [reply aid=...]       -> ""   (reply marker, legacy)
+        #   [qt][qtmeta ...][/qt] -> ""   (quote)
         #   [info]...[/info]      -> kept (might be useful context)
         def strip_chatwork_tags(body)
-          body.gsub(/\[(?:To|rp|reply):[^\]]+\]/i, "")
+          body.gsub(/\[(?:To:|rp\s|reply\s)[^\]]+\]/i, "")
               .gsub(/\[qt\].*?\[\/qt\]/im, "")
               .strip
         end
